@@ -34,3 +34,15 @@ def one_round_chat(message_system, message_user, max_tokens_ = 4096, temperature
             print(f"请求失败 ({i+1}/{max_retries}): {e}")
             time.sleep(2)
     return "请求失败"
+
+'''
+text_strip()
+格式化文本
+去掉换行符，去掉引号
+'''
+def text_strip(text):
+    text = text.replace("\n", "")
+    text = text.replace("“", "")
+    text = text.replace("”", "")
+    text = text.replace("\"", "")
+    return text
