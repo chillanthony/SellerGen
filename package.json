@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "pexels": "^1.4.0"
+  },
+  "scripts": {
+  "hello": "node hello.js"
+}
+
+}
