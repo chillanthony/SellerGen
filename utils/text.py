@@ -41,6 +41,7 @@ text_strip()
 去掉换行符，去掉引号
 '''
 def text_strip(text):
+    
     text = text.replace("\n", "")
     text = text.replace("“", "")
     text = text.replace("”", "")
