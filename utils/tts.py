@@ -120,7 +120,7 @@ def to_separated_sentence(word_boundary_list, audio_path):
         if i.boundary_type == speechsdk.SpeechSynthesisBoundaryType.Word:
             sentence += i.text
             offset_list.append(i.audio_offset)
-        if i.boundary_type == speechsdk.SpeechSynthesisBoundaryType.Punctuation:
+        if i.boundary_type == speechsdk.SpeechSynthesisBoundaryType.Punctuation and (i.text == "，" or i.text == "。"):
             sentence_list.append(SentenceBoundaryData(min(offset_list), sentence))
             sentence = ''
             offset_list.clear()
