@@ -1,5 +1,6 @@
 import os
 import azure.cognitiveservices.speech as speechsdk
+from pydub import AudioSegment
 
 '''
 WordBoundaryData
@@ -27,17 +28,18 @@ class WordBoundaryData:
 '''
 SentenceBoundaryData
 分句数据结构
-audio_offset: 句子开始时的时间偏移
+audio_offset: 句子开始时的时间偏移 单位ms float
 text: 句子内容
+duration: 句子持续时长 单位ms float
 '''
 class SentenceBoundaryData:
 
-    def __init__(self, audio_offset, text):
+    def __init__(self, audio_offset, text, duration = None):
         self.audio_offset = audio_offset
         self.text = text
     
     def __str__(self):
-        return f"Audio offset:{self.audio_offset}\nText:{self.text}"
+        return f"Text:{self.text}\nAudio offset:{self.audio_offset}\nDuration:{self.duration}"
 
 '''
 text_to_speech()
@@ -107,8 +109,9 @@ to_separated_sentence()
 返回这个音轨的分句列表（按标点）
 word_boundary_list: 这个音轨的分字列表
 '''
-def to_separated_sentence(word_boundary_list):
+def to_separated_sentence(word_boundary_list, audio_path):
 
+    # 生成分句列表
     sentence_list = []
 
     sentence = ''
@@ -122,6 +125,16 @@ def to_separated_sentence(word_boundary_list):
             sentence = ''
             offset_list.clear()
     
+    # 规范化分句列表 插入duration属性
+    segment_list = [0.0]
+    for i in range(1, len(sentence_list)):
+        segment_list.append(sentence_list[i].audio_offset)
+    segment_list.append(get_audio_length_ms(audio_path))
+
+    for i in range(len(sentence_list)):
+        sentence_list[i].audio_offset = segment_list[i]
+        sentence_list[i].duration = segment_list[i+1] - segment_list[i]
+
     return sentence_list
 
 '''
@@ -130,8 +143,9 @@ to_subtitle()
 返回这个音轨的字幕列表（按长度）
 word_boundary_list: 这个音轨的分字列表
 '''
-def to_subtitle(word_boundary_list):
+def to_subtitle(word_boundary_list, audio_path):
 
+    # 获取字幕列表
     subtitle_list = []
 
     sentence = ''
@@ -148,5 +162,24 @@ def to_subtitle(word_boundary_list):
     if len(offset_list) > 0:
         subtitle_list.append(SentenceBoundaryData(min(offset_list), sentence))
     
+    # 规范化分句列表 插入duration属性
+    segment_list = [0.0]
+    for i in range(1, len(subtitle_list)):
+        segment_list.append(subtitle_list[i].audio_offset)
+    segment_list.append(get_audio_length_ms(audio_path))
+
+    for i in range(len(subtitle_list)):
+        subtitle_list[i].audio_offset = segment_list[i]
+        subtitle_list[i].duration = segment_list[i+1] - segment_list[i]
+
     return subtitle_list
 
+'''
+get_audio_length_ms()
+获取音频时长 单位为ms
+audio_path: 音频路径
+'''
+def get_audio_length_ms(audio_path):
+
+    audio = AudioSegment.from_file(audio_path)
+    return len(audio)
