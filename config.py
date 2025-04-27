@@ -72,14 +72,4 @@ message_system_text_generation = '''
 
 message_user_text_generation_prompt = "请你为我写一段文案，主题故事是"
 
-message_system_hotword_prompt = '''
-## 角色设定
-    你是一个热词提取助手
-
-## 核心任务
-    我会向你输入一句中文短句，你的任务是提取这句话中最关键的一个词汇，并将它翻译成英文
-    你的输出有且仅有一个英文单词
-
-'''
-
 tts_voice_name = 'zh-CN-YunxiNeural'

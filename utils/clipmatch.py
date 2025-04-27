@@ -5,6 +5,7 @@ import os
 import requests
 from tqdm import tqdm
 from deep_translator import GoogleTranslator
+from moviepy.editor import VideoFileClip, concatenate_videoclips
 from enum import Enum
 from config import *
 from utils.text import *
@@ -40,7 +41,7 @@ def clip_match(sentence_list, src_folder):
         clip_list.append(VideoClip(i, sentence_list[i].text, sentence_list[i].audio_offset, sentence_list[i].duration))
 
     for i in range(len(clip_list)):
-        print(i, ':')
+        print(i+1, '/', len(clip_list))
         # 提取热词
         hotword = hotword_generation(clip_list[i])
         clip_list[i].hotword = hotword
@@ -51,8 +52,8 @@ def clip_match(sentence_list, src_folder):
         clip_list[i].type = tp
         clip_list[i].path = os.path.join(src_folder, str(i) + '.mp4')
 
-        if clip_list[i].type == clip_type.Video:
-            download_video(clip_list[i].url, clip_list[i].path)
+        # 下载视频
+        download_video(clip_list[i].url, clip_list[i].path)
     
     return clip_list
 
@@ -67,10 +68,8 @@ def hotword_generation(clip):
     keywords = jieba.analyse.extract_tags(clip.text, topK=1)
     if len(keywords) == 1:
         hotword = GoogleTranslator(source='zh-CN', target='en').translate(keywords[0])
-        print(keywords[0], hotword)
     else:
         hotword = 'NaN'
-        print(hotword)
     
     return hotword
 
@@ -94,12 +93,25 @@ def call_pexels(clip):
         output = result.stdout.strip()
         data = json.loads(output)
 
+        # 假如没有结果，就用默认关键词
         if data['total_results'] == 0:
-            return None, clip_type.Default
-        else:
-            i = data['videos'][0]["video_files"][0]
-            print("duration:", data['videos'][0]["duration"], 'file_type:', i['file_type'], 'width:', i['width'], 'height:', i['height'], 'link', i['link'])
-            return i['link'], clip_type.Video
+            result = subprocess.run(
+                ['node', 'js/video.js', 'crowd'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            output = result.stdout.strip()
+            data = json.loads(output)         
+        
+        # 选择时长最短的视频
+        duration_list = []
+        for j in data['videos']:
+            duration_list.append(j['duration'])
+        id = duration_list.index(min(duration_list))
+        i = data['videos'][id]["video_files"][0]
+        print("duration:", data['videos'][id]["duration"], 'file_type:', i['file_type'], 'width:', i['width'], 'height:', i['height'], 'link', i['link'])
+        return i['link'], clip_type.Video
 
     except subprocess.CalledProcessError as e:
         print("Node.js 脚本运行出错：", e.stderr)
@@ -140,3 +152,67 @@ def download_video(video_url: str, save_path: str):
 
     except Exception as e:
         print(f"视频下载失败：{e}")
+
+'''
+prepare_clip()
+调整素材大小，加黑边，调节帧率
+clip:moviepy的subclip类
+'''
+def prepare_clip(clip):
+    # 调整宽度到720，保持纵横比例
+    clip = clip.resize(width=720)
+    
+    # 创建一个720x1280的黑色背景，并把clip放到中间
+    clip = clip.on_color(
+        size=(720, 1280),     # 画布尺寸
+        color=(0, 0, 0),      # 背景颜色（黑色）
+        pos=("center", "center")  # 居中
+    )
+    
+    # 可选：统一帧率
+    clip = clip.set_fps(30)
+    
+    return clip
+
+'''
+get_video_duration()
+获取视频时长
+video_path: 视频路径
+'''
+def get_video_duration(video_path):
+
+    # 载入视频
+    clip = VideoFileClip(video_path)
+
+    # 获取时长（单位：秒）
+    return clip.duration
+
+'''
+video_generation()
+输入片段列表，输出路径，拼接视频
+clip_list: 视频片段列表
+video_path: 视频输出路径
+'''
+def video_generation(clip_list, video_path):
+
+    vid_list = []
+    for i in range(len(clip_list)):
+        duration = clip_list[i].duration/1000
+        duration_content = get_video_duration(clip_list[i].path)
+
+        # 素材太短时循环素材
+        while duration_content < duration:
+            clip = VideoFileClip(clip_list[i].path).subclip(0, duration_content)
+            clip = prepare_clip(clip)
+            vid_list.append(clip)
+            duration -= duration_content
+        
+        # 调整片段，加入时间线
+        clip = VideoFileClip(clip_list[i].path).subclip(0, duration)
+        clip = prepare_clip(clip)
+        vid_list.append(clip)
+    
+    # 拼接 导出
+    final_clip = concatenate_videoclips(vid_list)
+    final_clip.write_videofile(video_path)
+
