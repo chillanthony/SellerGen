@@ -1,4 +1,6 @@
 import os
+import sys
+import argparse
 from datetime import datetime
 from config import *
 from utils.text import *
@@ -6,14 +8,22 @@ from utils.tts import *
 from utils.clipmatch import *
 from utils.fusevideo import *
 
+# 读取主题参数
+parser = argparse.ArgumentParser(description='读取 -t 参数并打印其值')
+parser.add_argument('-t', type=str, help='主题参数')
+args = parser.parse_args()
 
-theme = "你是什么时候开始意识到中国强大起来了"
+if args.t is None:
+    print("错误：没有主题参数")
+    sys.exit(1)
+else:
+    theme = args.t
 message_user_text_generation = message_user_text_generation_prompt + theme
 
 # 创建路径变量
 now = datetime.now()
 datetime_str = now.strftime("%Y-%m-%d_%H-%M")
-output_folder = os.path.join("output", datetime_str + theme)
+output_folder = os.path.join(output_folder_root, datetime_str + theme)
 src_folder = os.path.join(output_folder, "src")
 audio_path = os.path.join(output_folder, theme + ".wav")
 video_path = os.path.join(output_folder, theme + ".mp4")
