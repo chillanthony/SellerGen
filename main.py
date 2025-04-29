@@ -1,16 +1,23 @@
 import os
+from datetime import datetime
 from config import *
 from utils.text import *
 from utils.tts import *
 from utils.clipmatch import *
+from utils.fusevideo import *
+
+
+theme = "你是什么时候开始意识到中国强大起来了"
+message_user_text_generation = message_user_text_generation_prompt + theme
 
 # 创建路径变量
-theme = "美国人民不愿意再支持特朗普的胡闹政策"
-message_user_text_generation = message_user_text_generation_prompt + theme
-output_folder = os.path.join("output", theme)
+now = datetime.now()
+datetime_str = now.strftime("%Y-%m-%d_%H-%M")
+output_folder = os.path.join("output", datetime_str + theme)
 src_folder = os.path.join(output_folder, "src")
 audio_path = os.path.join(output_folder, theme + ".wav")
 video_path = os.path.join(output_folder, theme + ".mp4")
+video_final_path = os.path.join(output_folder, theme + "_final.mp4")
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 if not os.path.exists(src_folder):
@@ -31,6 +38,9 @@ word_boundary_list = text_to_speech(ttsconfig.ssml, audio_path)
 sentence_list = to_separated_sentence(word_boundary_list, audio_path)
 subtitle_list = to_subtitle(word_boundary_list, audio_path)
 
+# 匹配片段并下载
 clip_list = clip_match(sentence_list, src_folder)
-for i in clip_list:
-    print(i.index, i.offset, i.duration, i.text)
+
+# 生成视频
+video_generation(clip_list, video_path)
+replace_video_audio(video_path, audio_path, video_final_path)

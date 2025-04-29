@@ -72,4 +72,4 @@ message_system_text_generation = '''
 
 message_user_text_generation_prompt = "请你为我写一段文案，主题故事是"
 
-tts_voice_name = 'zh-CN-YunxiNeural'
+tts_voice_name = 'zh-CN-YunzeNeural'

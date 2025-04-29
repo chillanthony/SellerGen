@@ -50,7 +50,7 @@ def clip_match(sentence_list, src_folder):
         url, tp = call_pexels(clip_list[i])
         clip_list[i].url = url
         clip_list[i].type = tp
-        clip_list[i].path = os.path.join(src_folder, str(i) + '.mp4')
+        clip_list[i].path = os.path.join(src_folder, str(i+1) + '.mp4')
 
         # 下载视频
         download_video(clip_list[i].url, clip_list[i].path)
